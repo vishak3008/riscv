@@ -1,0 +1,271 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RISC Processor ALU Studio</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="page-shell">
+        <header class="hero">
+            <div class="hero-copy">
+                <p class="eyebrow">Browser-Based RISC Playground</p>
+                <h1>Build math instructions and watch a RISC processor execute them live.</h1>
+                <p class="hero-text">
+                    This project simulates a compact RISC-style CPU in JavaScript. Type assembly-like
+                    instructions, run them cycle by cycle, and inspect registers, memory, ALU results, and the program counter.
+                </p>
+            </div>
+            <div class="hero-card">
+                <div class="stat">
+                    <span class="stat-label">Instructions</span>
+                    <strong id="instruction-count">0</strong>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Cycle</span>
+                    <strong id="cycle-count">0</strong>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">PC</span>
+                    <strong id="pc-value">0x00000000</strong>
+                </div>
+            </div>
+        </header>
+
+        <main class="dashboard">
+            <section class="panel panel-editor">
+                <div class="panel-header">
+                    <div>
+                        <p class="panel-kicker">Program Input</p>
+                        <h2>Assembly Editor</h2>
+                    </div>
+                    <div class="button-row">
+                        <button id="load-sample" class="ghost-button" type="button">Load Sample</button>
+                        <button id="reset-cpu" class="ghost-button" type="button">Reset CPU</button>
+                    </div>
+                </div>
+
+                <label class="editor-label" for="program-input">Enter one instruction per line.</label>
+                <textarea id="program-input" spellcheck="false"></textarea>
+
+                <div class="button-row run-row">
+                    <button id="assemble-button" type="button">Assemble</button>
+                    <button id="step-button" type="button">Step</button>
+                    <button id="run-button" type="button">Run Program</button>
+                </div>
+
+                <div class="status-strip">
+                    <div class="status-box">
+                        <span class="status-label">Last ALU Result</span>
+                        <strong id="alu-result">-</strong>
+                    </div>
+                    <div class="status-box">
+                        <span class="status-label">Last Action</span>
+                        <strong id="last-action">Ready</strong>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel panel-visuals">
+                <div class="panel-header">
+                    <div>
+                        <p class="panel-kicker">Working Image</p>
+                        <h2>Processor Flow Diagram</h2>
+                    </div>
+                </div>
+
+                <div class="diagram-meta">
+                    <div class="status-box">
+                        <span class="status-label">Current Instruction</span>
+                        <strong id="current-instruction">No instruction yet</strong>
+                    </div>
+                    <div class="status-box">
+                        <span class="status-label">Signal Summary</span>
+                        <strong id="diagram-status">Waiting for execution</strong>
+                    </div>
+                </div>
+
+                <svg class="processor-diagram" viewBox="0 0 920 320" role="img" aria-label="RISC processor execution diagram">
+                    <defs>
+                        <linearGradient id="nodeGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#fff4eb"></stop>
+                            <stop offset="100%" stop-color="#ffe0cf"></stop>
+                        </linearGradient>
+                    </defs>
+                    <path class="diagram-wire" d="M125 85 H235"></path>
+                    <path class="diagram-wire" d="M355 85 H468"></path>
+                    <path class="diagram-wire" d="M588 85 H705"></path>
+                    <path class="diagram-wire" d="M825 85 H885 V220 H355"></path>
+                    <path class="diagram-wire branch-wire" d="M525 140 V235 H125 V140"></path>
+
+                    <g class="diagram-node" data-role="pc">
+                        <rect x="20" y="45" width="105" height="82" rx="20"></rect>
+                        <text x="72" y="78">PC</text>
+                        <text x="72" y="104" class="small">Fetch Address</text>
+                    </g>
+
+                    <g class="diagram-node" data-role="decoder">
+                        <rect x="235" y="45" width="120" height="82" rx="20"></rect>
+                        <text x="295" y="78">Decoder</text>
+                        <text x="295" y="104" class="small">Control + Parse</text>
+                    </g>
+
+                    <g class="diagram-node" data-role="registers">
+                        <rect x="468" y="45" width="120" height="82" rx="20"></rect>
+                        <text x="528" y="78">Registers</text>
+                        <text x="528" y="104" class="small">x0 to x31</text>
+                    </g>
+
+                    <g class="diagram-node" data-role="alu">
+                        <rect x="705" y="45" width="120" height="82" rx="20"></rect>
+                        <text x="765" y="78">ALU</text>
+                        <text x="765" y="104" class="small">Math / Logic</text>
+                    </g>
+
+                    <g class="diagram-node" data-role="memory">
+                        <rect x="705" y="185" width="120" height="82" rx="20"></rect>
+                        <text x="765" y="218">Data Mem</text>
+                        <text x="765" y="244" class="small">lw / sw</text>
+                    </g>
+
+                    <g class="diagram-node" data-role="writeback">
+                        <rect x="235" y="185" width="120" height="82" rx="20"></rect>
+                        <text x="295" y="218">Write Back</text>
+                        <text x="295" y="244" class="small">Result to rd</text>
+                    </g>
+                </svg>
+
+                <div class="diagram-readouts">
+                    <div class="readout-pill">
+                        <span>ALU Input A</span>
+                        <strong id="signal-a">-</strong>
+                    </div>
+                    <div class="readout-pill">
+                        <span>ALU Input B</span>
+                        <strong id="signal-b">-</strong>
+                    </div>
+                    <div class="readout-pill">
+                        <span>ALU Output</span>
+                        <strong id="signal-out">-</strong>
+                    </div>
+                    <div class="readout-pill">
+                        <span>Memory Addr</span>
+                        <strong id="signal-mem">-</strong>
+                    </div>
+                    <div class="readout-pill">
+                        <span>Branch / Jump</span>
+                        <strong id="signal-branch">-</strong>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel panel-graphs">
+                <div class="panel-header">
+                    <div>
+                        <p class="panel-kicker">Live Graphs</p>
+                        <h2>Execution Analytics</h2>
+                    </div>
+                </div>
+
+                <div class="graph-stack">
+                    <div class="graph-card">
+                        <div class="graph-title-row">
+                            <h3>ALU Result Timeline</h3>
+                            <span>Last 12 executions</span>
+                        </div>
+                        <svg id="alu-chart" class="chart-svg" viewBox="0 0 520 220" role="img" aria-label="ALU result graph"></svg>
+                    </div>
+
+                    <div class="graph-card">
+                        <div class="graph-title-row">
+                            <h3>Registers x1 to x8</h3>
+                            <span>Current values</span>
+                        </div>
+                        <svg id="register-chart" class="chart-svg" viewBox="0 0 520 220" role="img" aria-label="Register value chart"></svg>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel panel-playground">
+                <div class="panel-header">
+                    <div>
+                        <p class="panel-kicker">Quick Math</p>
+                        <h2>ALU Playground</h2>
+                    </div>
+                </div>
+
+                <div class="playground-grid">
+                    <label>
+                        <span>Destination</span>
+                        <select id="play-rd"></select>
+                    </label>
+                    <label>
+                        <span>Source 1</span>
+                        <select id="play-rs1"></select>
+                    </label>
+                    <label>
+                        <span>Operation</span>
+                        <select id="play-op">
+                            <option value="add">add</option>
+                            <option value="sub">sub</option>
+                            <option value="and">and</option>
+                            <option value="or">or</option>
+                            <option value="xor">xor</option>
+                            <option value="slt">slt</option>
+                            <option value="addi">addi</option>
+                        </select>
+                    </label>
+                    <label id="rs2-wrapper">
+                        <span>Source 2</span>
+                        <select id="play-rs2"></select>
+                    </label>
+                    <label id="imm-wrapper" class="hidden">
+                        <span>Immediate</span>
+                        <input id="play-imm" type="number" value="5">
+                    </label>
+                </div>
+
+                <div class="button-row">
+                    <button id="execute-playground" type="button">Execute Operation</button>
+                </div>
+
+                <p class="hint">
+                    The playground writes a single instruction directly into the simulated CPU state, so you can test ALU math without building a full program first.
+                </p>
+            </section>
+
+            <section class="panel panel-registers">
+                <div class="panel-header">
+                    <div>
+                        <p class="panel-kicker">Core State</p>
+                        <h2>Register File</h2>
+                    </div>
+                </div>
+                <div id="register-grid" class="register-grid"></div>
+            </section>
+
+            <section class="panel panel-memory">
+                <div class="panel-header">
+                    <div>
+                        <p class="panel-kicker">Memory View</p>
+                        <h2>Data Memory</h2>
+                    </div>
+                </div>
+                <div id="memory-list" class="memory-list"></div>
+            </section>
+
+            <section class="panel panel-trace">
+                <div class="panel-header">
+                    <div>
+                        <p class="panel-kicker">Execution Trace</p>
+                        <h2>Cycle Log</h2>
+                    </div>
+                </div>
+                <div id="trace-list" class="trace-list"></div>
+            </section>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
